@@ -1,0 +1,25 @@
+{
+  "name": "vqsfia",
+  "version": "1.0.0",
+  "description": "Server side form generation for SFIA-based progression",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cgarethc/vqsfia.git"
+  },
+  "author": "Gareth Cronin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cgarethc/vqsfia/issues"
+  },
+  "homepage": "https://github.com/cgarethc/vqsfia",
+  "dependencies": {
+    "commandline-parser": "^0.4.0",
+    "csv-parse": "^1.1.7",
+    "log4js": "^0.6.38",
+    "officegen": "^0.2.10"
+  }
+}
