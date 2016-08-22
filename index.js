@@ -10,6 +10,7 @@ const parse = require('csv-parse');
 const commandline = require('commandline-parser');
 
 const FIRST_COLUMN = 3;
+const MATRIX_CSV = 'skillsmatrix_v2.1.csv';
 
 // configure logger
 var logger = log4js.getLogger();
@@ -29,11 +30,6 @@ clparser.addArgument('help' ,{
     process.exit(0);
   }
 });
-clparser.addArgument('output' ,{
-	flags : ['o','output'],
-	desc : 'output file',
-	optional : false,
-});
 clparser.addArgument('role' ,{
 	flags : ['r','role'],
 	desc : 'specify a role',
@@ -44,13 +40,19 @@ clparser.addArgument('level' ,{
 	desc : 'specify a level',
 	optional : true,
 });
+clparser.addArgument('progression' ,{
+	flags : ['p','progession'],
+	desc : 'specify a level to progress to',
+	optional : true,
+});
 clparser.exec();
 
 let docx = officegen( 'docx' );
 
-let parser = parse({delimiter: ','});
+let parser = parse();
 // Use the writable stream api
 let header;
+let fileName;
 let table = [];
 parser.on('data', function(row){
   if(!header){
@@ -60,10 +62,11 @@ parser.on('data', function(row){
     paragraph.addText ('Skills Profile', {font_size: 24, bold: true});
 
   }
-  if(row[0] === clparser.get('role') && row[1] === clparser.get('level')){
+  if((row[0] === clparser.get('role') && row[1] === clparser.get('level')) && !clparser.get('progression')){
     logger.debug(row);
     let paragraph = docx.createP();
     paragraph.addText (`${row[0]} - ${row[1]}`, {font_size: 12, bold: true});
+    fileName = `Skills Profile ${row[0]} - ${row[1]}.docx`;
 
     for(var counter = FIRST_COLUMN; counter < row.length; counter++){
       if(row[counter] !== 'N/A'){
@@ -80,7 +83,7 @@ parser.on('error', function(err){
 
 parser.on('finish', function(){
   logger.info('Done');
-  let out = fs.createWriteStream(clparser.get('output'));
+  let out = fs.createWriteStream(fileName);
 
   let tableStyle = {
     tableColWidth: 4261,
@@ -98,6 +101,6 @@ parser.on('finish', function(){
   });
 });
 
-fs.createReadStream(__dirname+'/skillsmatrix_v2.0.csv').pipe(parser);
+fs.createReadStream(`${__dirname}/${MATRIX_CSV}`).pipe(parser);
 
 })();
