@@ -1,1 +1,1 @@
-node index.js -r "Test Engineer" -l "Senior"
+node index.js -f "Test Engineer" -l "Senior"

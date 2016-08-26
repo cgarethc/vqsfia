@@ -19,6 +19,7 @@
   "dependencies": {
     "commandline-parser": "^0.4.0",
     "csv-parse": "^1.1.7",
+    "lodash": "^4.15.0",
     "log4js": "^0.6.38",
     "officegen": "^0.2.10"
   }
