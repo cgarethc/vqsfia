@@ -72,8 +72,6 @@
       // read the CSV header
       header = row;
       logger.debug(header);
-
-
     }
     else{
       if(
@@ -87,7 +85,10 @@
 
         for(var counter = FIRST_COLUMN; counter < row.length; counter++){
           if(row[counter] !== 'N/A'){
-            skills.push(header[counter]);
+            if(_.indexOf(skills, header[counter]) < 0){
+              logger.debug(`Adding ${header[counter]}`);
+              skills.push(header[counter]);
+            }
             skillData[header[counter]] = row[counter];
           }
         }
@@ -207,7 +208,7 @@
           toSkill = toData[skill];
         }
         if(fromSkill !== toSkill){
-          table.push([skill, fromSkill, toSkill]);
+          table.push([skill, fromSkill, toSkill, '']);
         }
       });
     }
