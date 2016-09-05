@@ -8,8 +8,9 @@
   const log4js = require('log4js');
   const fs = require('fs');
   const parse = require('csv-parse');
-  const commandline = require('commandline-parser');
   const _ = require('lodash');
+  const express = require('express');
+  const cli = require('commander');
 
   // column to start reading the CSV from (zero-based)
   const FIRST_COLUMN = 2;
@@ -17,224 +18,236 @@
   const MATRIX_CSV = 'skillsmatrix_v2.1.csv';
 
   // configure logger
-  var logger = log4js.getLogger();
-  logger.setLevel('DEBUG');
+  const logger = log4js.getLogger();
+  logger.setLevel('INFO');
 
   // configure command line parser
-  var clparser = new commandline.Parser({
-    name : "vqSFIA",
-    desc : 'SFIA progression process form generation'
-  });
-  clparser.addArgument('help' ,{
-    flags : ['h','help'],
-    desc : "show help",
-    optional : true,
-    action : function(value, parser){
-      parser.printHelp();
-      process.exit(0);
-    }
-  });
-  clparser.addArgument('fromrole' ,{
-    flags : ['f','fromrole'],
-    desc : 'specify a role',
-    optional : true,
-  });
-  clparser.addArgument('torole' ,{
-    flags : ['t','torole'],
-    desc : 'specify a role to progress to',
-    optional : true,
-  });
-  clparser.addArgument('levelfrom' ,{
-    flags : ['l','level'],
-    desc : 'specify a current level',
-    optional : true,
-  });
-  clparser.addArgument('progressionlevel' ,{
-    flags : ['p','progessionlevel'],
-    desc : 'specify a level to progress to, if not provided a skills profile will be produced',
-    optional : true,
-  });
-  clparser.exec();
+  cli
+    .version('0.0.1')
+    .option('-f, --fromrole [role]', 'The role, e.g. "Test Engineer"')
+    .option('-t, --torole [role]', 'Role to progress to, e.g. "Team Leader"')
+    .option('-l, --levelfrom [level]', 'Current level, e.g. "Senior"')
+    .option('-p, --progressionlevel [level]', 'Level to progress to, e.g. "Intermediate"')
+    .option('-s, --server [port]', 'Run as a web server on specified port', parseInt)
+    .parse(process.argv);
 
-  let docx = officegen( 'docx' );
+  /**
+  * @out output stream to write to
+  */
+  function createDocument(fromrole, levelfrom, torole, progressionlevel, out){
 
-  let parser = parse();
-  let header;
-  let fileName;
+    let docx = officegen( 'docx' );
 
-  let fromData;
-  let toData;
-  let skills = [];
+    let parser = parse();
+    let header;
+    let fileName;
 
-  // parse
-  parser.on('data', function(row){
-    if(!header){
-      // read the CSV header
-      header = row;
-      logger.debug(header);
-    }
-    else{
-      if(
-        (row[0] === clparser.get('fromrole') &&
-        row[1] === clparser.get('levelfrom')) ||
-        (row[0] === clparser.get('torole') &&
-        row[1] === clparser.get('progressionlevel'))
-      ){
-        // if the role, plus the from level or to level match
-        let skillData = {};
+    let fromData;
+    let toData;
+    let skills = [];
 
-        for(var counter = FIRST_COLUMN; counter < row.length; counter++){
-          if(row[counter] !== 'N/A'){
-            if(_.indexOf(skills, header[counter]) < 0){
-              logger.debug(`Adding ${header[counter]}`);
-              skills.push(header[counter]);
-            }
-            skillData[header[counter]] = row[counter];
-          }
-        }
 
-        logger.debug(`skillData: ${JSON.stringify(skillData)}`);
-
-        if(row[1] === clparser.get('levelfrom')){
-          // it's the from level
-          logger.debug('setting to fromData');
-          fromData = skillData;
-        }
-        else if(row[1] === clparser.get('progressionlevel')){
-          // it's the to level
-          logger.debug('setting to toData');
-          toData = skillData;
-        }
+    // parse
+    parser.on('data', function(row){
+      if(!header){
+        // read the CSV header
+        header = row;
+        logger.debug(header);
       }
-    }
+      else{
+        if(
 
+          (row[0] === fromrole &&
+            row[1] === levelfrom) ||
+            (row[0] === torole &&
+              row[1] === progressionlevel)
+            ){
+              // if the role, plus the from level or to level match
+              let skillData = {};
 
-  });
+              for(var counter = FIRST_COLUMN; counter < row.length; counter++){
+                if(row[counter] !== 'N/A'){
+                  if(_.indexOf(skills, header[counter]) < 0){
+                    logger.debug(`Adding ${header[counter]}`);
+                    skills.push(header[counter]);
+                  }
+                  skillData[header[counter]] = row[counter];
+                }
+              }
 
-  // Catch any error
-  parser.on('error', function(err){
-    logger.error(err);
-  });
+              logger.debug(`skillData: ${JSON.stringify(skillData)}`);
 
-  parser.on('finish', function(){
-    logger.info('Done');
-
-    let table;
-
-    // output a heading to the document and set filename
-    if(!clparser.get('progressionlevel')){
-      // just generate a Profile
-      let paragraph = docx.createP();
-      paragraph.addText ('Skills Profile', {font_size: 24, bold: true});
-      paragraph = docx.createP();
-      paragraph.addText (`${clparser.get('fromrole')} - ${clparser.get('levelfrom')}`, {font_size: 12, bold: true});
-      fileName = `Skills Profile ${clparser.get('fromrole')} - ${clparser.get('levelfrom')}.docx`;
-
-      table = [
-        [
-          {
-            val:'Skill',
-            opts: {
-              b:true,
-              cellColWidth: 800
-            }
-          },
-          {
-            val:'Requirement',
-            opts: {
-              b:true,
-              cellColWidth: 6000
+              if(row[1] === levelfrom){
+                // it's the from level
+                logger.debug('setting to fromData');
+                fromData = skillData;
+              }
+              else if(row[1] === progressionlevel){
+                // it's the to level
+                logger.debug('setting to toData');
+                toData = skillData;
+              }
             }
           }
-        ]
-      ];
 
-      _.forEach(fromData, function(value, key){
-        logger.debug(`Adding to table: ${key} = ${value}`);
-        table.push([key, value]);
-      });
-    }
-    else{
-      // generate a matrix
-      let paragraph = docx.createP();
-      paragraph.addText ('Progression Matrix', {font_size: 24, bold: true});
-      paragraph = docx.createP();
-      paragraph.addText (
-        `${clparser.get('fromrole')} - ${clparser.get('levelfrom')} to ${clparser.get('torole')} - ${clparser.get('progressionlevel')}`,
-        {font_size: 12, bold: true}
-      );
-      fileName = `Progression Matrix ${clparser.get('fromrole')} - ${clparser.get('levelfrom')} to ${clparser.get('torole')} - ${clparser.get('progressionlevel')}.docx`;
-      table = [
-        [
-          {
-            val:'Skill',
-            opts: {
-              b:true,
-              cellColWidth: 400
-            }
-          },
-          {
-            val:'Current',
-            opts: {
-              b:true,
-              cellColWidth: 2000
-            }
-          },
-          {
-            val:'Requirement',
-            opts: {
-              b:true,
-              cellColWidth: 2000
-            }
-          },
-          {
-            val:'Evidence',
-            opts: {
-              b:true,
-              cellColWidth: 2000
-            }
+
+        });
+
+        // Catch any error
+        parser.on('error', function(err){
+          logger.error(err);
+        });
+
+        parser.on('finish', function(){
+          logger.info('Done');
+
+          let table;
+
+          // output a heading to the document and set filename
+          if(!progressionlevel){
+            // just generate a Profile
+            let paragraph = docx.createP();
+            paragraph.addText ('Skills Profile', {font_size: 24, bold: true});
+            paragraph = docx.createP();
+            paragraph.addText (`${fromrole} - ${levelfrom}`, {font_size: 12, bold: true});
+            fileName = `Skills Profile ${fromrole} - ${levelfrom}.docx`;
+
+            table = [
+              [
+                {
+                  val:'Skill',
+                  opts: {
+                    b:true,
+                    cellColWidth: 800
+                  }
+                },
+                {
+                  val:'Requirement',
+                  opts: {
+                    b:true,
+                    cellColWidth: 6000
+                  }
+                }
+              ]
+            ];
+
+            _.forEach(fromData, function(value, key){
+              logger.debug(`Adding to table: ${key} = ${value}`);
+              table.push([key, value]);
+            });
           }
-        ]
-      ];
+          else{
+            // generate a matrix
+            let paragraph = docx.createP();
+            paragraph.addText ('Progression Matrix', {font_size: 24, bold: true});
+            paragraph = docx.createP();
+            paragraph.addText (
+              `${fromrole} - ${levelfrom} to ${torole} - ${progressionlevel}`,
+              {font_size: 12, bold: true}
+            );
+            fileName = `Progression Matrix ${fromrole} - ${levelfrom} to ${torole} - ${progressionlevel}.docx`;
+            table = [
+              [
+                {
+                  val:'Skill',
+                  opts: {
+                    b:true,
+                    cellColWidth: 400
+                  }
+                },
+                {
+                  val:'Current',
+                  opts: {
+                    b:true,
+                    cellColWidth: 2000
+                  }
+                },
+                {
+                  val:'Requirement',
+                  opts: {
+                    b:true,
+                    cellColWidth: 2000
+                  }
+                },
+                {
+                  val:'Evidence',
+                  opts: {
+                    b:true,
+                    cellColWidth: 2000
+                  }
+                }
+              ]
+            ];
 
-      skills.forEach(function(skill){
-        logger.debug(skill);
-        let fromSkill = '';
-        let toSkill = '';
-        if(fromData[skill]){
-          fromSkill = fromData[skill];
-        }
-        if(toData[skill]){
-          toSkill = toData[skill];
-        }
-        if(fromSkill !== toSkill){
-          table.push([skill, fromSkill, toSkill, '']);
-        }
-      });
-    }
+            skills.forEach(function(skill){
+              logger.debug(skill);
+              let fromSkill = '';
+              let toSkill = '';
+              if(fromData[skill]){
+                fromSkill = fromData[skill];
+              }
+              if(toData[skill]){
+                toSkill = toData[skill];
+              }
+              if(fromSkill !== toSkill){
+                table.push([skill, fromSkill, toSkill, '']);
+              }
+            });
+          }
 
-    let out = fs.createWriteStream(fileName);
 
-    let tableStyle = {
-      tableSize: 24,
-      tableFontFamily: "Arial",
-      tableAlign: "left",
-      borders: true
-    };
 
-    docx.createTable (table, tableStyle);
+          let tableStyle = {
+            tableSize: 24,
+            tableFontFamily: "Arial",
+            tableAlign: "left",
+            borders: true
+          };
 
-    if(!fromData){
-      logger.error(`No level was matched for ${clparser.get('fromrole')} - ${clparser.get('levelfrom')}`);
-      System.exit(2);
-    }
+          docx.createTable (table, tableStyle);
 
-    docx.generate( out );
-    out.on('close', function (){
-      logger.info('Finished creating file');
-    });
-  });
+          if(!fromData){
+            logger.error(`No level was matched for ${fromrole} - ${levelfrom}`);
+            process.exit(2);
+          }
 
-  fs.createReadStream(`${__dirname}/${MATRIX_CSV}`).pipe(parser);
+          if(!out){
+            out = fs.createWriteStream(fileName);
+          }
+          docx.generate(out);
+          out.on('close', function (){
+            logger.info('Finished creating file');
+          });
+        });
+
+        fs.createReadStream(`${__dirname}/${MATRIX_CSV}`).pipe(parser);
+      }
+
+
+      if(cli.server){
+        const app = express();
+        app.get('/', function (req, res) {
+          // TODO this isn't working yet - see Postman
+          createDocument(
+            req.params.fromrole,
+            req.params.levelfrom,
+            req.params.torole,
+            req.params.progressionlevel,
+            res
+          );
+        });
+        app.listen(cli.server, function () {
+          logger.info(`vqsfia listening on port ${cli.server}`);
+        });
+      }
+      else{
+        createDocument(
+          cli.fromrole,
+          cli.levelfrom,
+          cli.torole,
+          cli.progressionlevel
+        );
+      }
+
 
 })();
