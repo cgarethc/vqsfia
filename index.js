@@ -15,7 +15,7 @@
   // column to start reading the CSV from (zero-based)
   const FIRST_COLUMN = 2;
   // source CSV file
-  const MATRIX_CSV = 'skillsmatrix_v2.1.csv';
+  const MATRIX_CSV = 'skillsmatrix_v2.2.csv';
 
   // configure logger
   const logger = log4js.getLogger();
@@ -29,6 +29,7 @@
     .option('-l, --levelfrom [level]', 'Current level, e.g. "Senior"')
     .option('-p, --progressionlevel [level]', 'Level to progress to, e.g. "Intermediate"')
     .option('-s, --server [port]', 'Run as a web server on specified port', parseInt)
+    .option('-d, --directory [directory]', 'Output files to given directory')
     .parse(process.argv);
 
   /**
@@ -36,7 +37,7 @@
   */
   function createDocument(fromrole, levelfrom, torole, progressionlevel, out){
 
-    let docx = officegen( 'docx' );
+    let docx = officegen( {type:'docx', orientation:'landscape'} );
 
     let parser = parse();
     let header;
@@ -99,8 +100,6 @@
         });
 
         parser.on('finish', function(){
-          logger.info('Done');
-
           let table;
 
           // output a heading to the document and set filename
@@ -145,35 +144,35 @@
               `${fromrole} - ${levelfrom} to ${torole} - ${progressionlevel}`,
               {font_size: 12, bold: true}
             );
-            fileName = `Progression Matrix ${fromrole} - ${levelfrom} to ${torole} - ${progressionlevel}.docx`;
+            fileName = `ProgMat ${levelfrom} ${fromrole} to ${progressionlevel} ${torole}.docx`;
             table = [
               [
                 {
                   val:'Skill',
                   opts: {
                     b:true,
-                    cellColWidth: 400
+                    cellColWidth: 2500
                   }
                 },
                 {
                   val:'Current',
                   opts: {
                     b:true,
-                    cellColWidth: 2000
+                    cellColWidth: 4200
                   }
                 },
                 {
                   val:'Requirement',
                   opts: {
                     b:true,
-                    cellColWidth: 2000
+                    cellColWidth: 4900
                   }
                 },
                 {
                   val:'Evidence',
                   opts: {
                     b:true,
-                    cellColWidth: 2000
+                    cellColWidth: 1200
                   }
                 }
               ]
@@ -212,11 +211,24 @@
           }
 
           if(!out){
-            out = fs.createWriteStream(fileName);
+            // if out is present, it was passed from the web server, otherwise we should write a file
+            if(cli.directory){
+              fs.access(cli.directory, fs.F_OK, function(err) {
+                  if (err) {
+                    logger.error(`Directory specified: '${cli.directory}' doesn't exist`);
+                    process.exit(2);
+                  }
+              });
+
+              out = fs.createWriteStream(`${cli.directory}/${fileName}`);
+            }
+            else{
+              out = fs.createWriteStream(fileName);
+            }
           }
           docx.generate(out);
           out.on('close', function (){
-            logger.info('Finished creating file');
+            logger.info(`Finished creating file ${fileName}`);
           });
         });
 
@@ -226,13 +238,13 @@
 
       if(cli.server){
         const app = express();
-        app.get('/', function (req, res) {
-          // TODO this isn't working yet - see Postman
+        app.use(express.static('client'));
+        app.get('/form', function (req, res) {
           createDocument(
-            req.params.fromrole,
-            req.params.levelfrom,
-            req.params.torole,
-            req.params.progressionlevel,
+            req.query.fromrole,
+            req.query.levelfrom,
+            req.query.torole,
+            req.query.progressionlevel,
             res
           );
         });

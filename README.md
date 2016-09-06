@@ -6,6 +6,6 @@ Clone the repo.
 
 Run `npm install`
 
-See the two shell scripts for examples on how to create a skills profile and a progression matrix.
+See the shell scripts for examples on how to create a skills profile and a progression matrix.
 
 Run `node index.js -h` for help on command line options syntax.
