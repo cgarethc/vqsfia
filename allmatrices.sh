@@ -11,3 +11,7 @@ node index.js -f "Software Engineer" -l "Senior" -t "Software Engineer" -p "Prin
 node index.js -f "Support Engineer" -l "Graduate" -t "Support Engineer" -p "Junior" -d "docs"
 node index.js -f "Support Engineer" -l "Junior" -t "Support Engineer" -p "Intermediate" -d "docs"
 node index.js -f "Support Engineer" -l "Intermediate" -t "Support Engineer" -p "Senior" -d "docs"
+
+node index.js -f "User Experience Designer" -l "Graduate" -t "User Experience Designer" -p "Junior" -d "docs"
+node index.js -f "User Experience Designer" -l "Junior" -t "User Experience Designer" -p "Intermediate" -d "docs"
+node index.js -f "User Experience Designer" -l "Intermediate" -t "User Experience Designer" -p "Senior" -d "docs"

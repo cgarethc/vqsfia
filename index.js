@@ -37,7 +37,15 @@
   */
   function createDocument(fromrole, levelfrom, torole, progressionlevel, out){
 
-    let docx = officegen( {type:'docx', orientation:'landscape'} );
+    let orientation;
+    if(torole){
+      orientation = 'landscape';
+    }
+    else {
+      orientation = 'portrait';
+    }
+
+    let docx = officegen( {type:'docx', orientation:orientation} );
 
     let parser = parse();
     let header;

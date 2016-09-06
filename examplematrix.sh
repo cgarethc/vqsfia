@@ -1,1 +1,1 @@
-node index.js -f "Support Engineer" -l "Graduate" -t "Support Engineer" -p "Junior" -d "docs"
+node index.js -f "User Experience Designer" -l "Intermediate" -t "User Experience Designer" -p "Senior"
