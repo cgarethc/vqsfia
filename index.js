@@ -33,6 +33,7 @@
     .parse(process.argv);
 
   /**
+  * Build a Word doc - if the torole is supplied it will be a matrix, otherwise it will be a skills profile
   * @out output stream to write to
   */
   function createDocument(fromrole, levelfrom, torole, progressionlevel, out){
@@ -47,16 +48,17 @@
 
     let docx = officegen( {type:'docx', orientation:orientation} );
 
+    // CSV parser
     let parser = parse();
     let header;
     let fileName;
-
+    // buffers for the matching data from the CSV
     let fromData;
     let toData;
     let skills = [];
 
 
-    // parse
+    // parse - with each "data" event, we are receiving a row from the CSV
     parser.on('data', function(row){
       if(!header){
         // read the CSV header
@@ -65,21 +67,24 @@
       }
       else{
         if(
-
+          // roles are in column zero and levels are in column one
           (row[0] === fromrole &&
             row[1] === levelfrom) ||
             (row[0] === torole &&
               row[1] === progressionlevel)
             ){
-              // if the role, plus the from level or to level match
+              // if we have a match on the from or the to, gather up the data
               let skillData = {};
-
+              // walk across the columns
               for(var counter = FIRST_COLUMN; counter < row.length; counter++){
                 if(row[counter] !== 'N/A'){
+                  // N/A marks an irrelevant skill
                   if(_.indexOf(skills, header[counter]) < 0){
+                    // First time we've seen the skill, put it in the overall skill list
                     logger.debug(`Adding ${header[counter]}`);
                     skills.push(header[counter]);
                   }
+                  // populate the buffer
                   skillData[header[counter]] = row[counter];
                 }
               }
@@ -112,7 +117,7 @@
 
           // output a heading to the document and set filename
           if(!progressionlevel){
-            // just generate a Profile
+            // just generate a profile
             let paragraph = docx.createP();
             paragraph.addText ('Skills Profile', {font_size: 24, bold: true});
             paragraph = docx.createP();
@@ -245,8 +250,10 @@
 
 
       if(cli.server){
+        // start a web server
         const app = express();
         app.use(express.static('client'));
+        // route /from to the API for generating a document
         app.get('/form', function (req, res) {
           createDocument(
             req.query.fromrole,
@@ -261,6 +268,7 @@
         });
       }
       else{
+        // generate a document
         createDocument(
           cli.fromrole,
           cli.levelfrom,
