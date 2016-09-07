@@ -16,6 +16,9 @@
   const FIRST_COLUMN = 2;
   // source CSV file
   const MATRIX_CSV = 'skillsmatrix_v2.2.csv';
+  // column widths
+  const WIDTH_PROFILE_0 = 800;
+  const WIDTH_PROFILE_1 = 8000;
 
   // configure logger
   const logger = log4js.getLogger();
@@ -34,7 +37,7 @@
 
   /**
   * Build a Word doc - if the torole is supplied it will be a matrix, otherwise it will be a skills profile
-  * @out output stream to write to
+  * @out HTTP response from Express/output stream to write to, only supplied if it was requested via web server
   */
   function createDocument(fromrole, levelfrom, torole, progressionlevel, out){
 
@@ -130,14 +133,14 @@
                   val:'Skill',
                   opts: {
                     b:true,
-                    cellColWidth: 800
+                    cellColWidth: WIDTH_PROFILE_0
                   }
                 },
                 {
                   val:'Requirement',
                   opts: {
                     b:true,
-                    cellColWidth: 6000
+                    cellColWidth: WIDTH_PROFILE_1
                   }
                 }
               ]
@@ -220,7 +223,13 @@
 
           if(!fromData){
             logger.error(`No level was matched for ${fromrole} - ${levelfrom}`);
-            process.exit(2);
+            if(out){
+              out.status(404).send();
+              return;
+            }
+            else{
+              process.exit(2);
+            }
           }
 
           if(!out){
@@ -239,6 +248,10 @@
               out = fs.createWriteStream(fileName);
             }
           }
+          else{
+            // set the header for the downloaded doc's name
+            out.header("content-disposition", `attachment; filename=${fileName}`);
+          }
           docx.generate(out);
           out.on('close', function (){
             logger.info(`Finished creating file ${fileName}`);
@@ -255,6 +268,7 @@
         app.use(express.static('client'));
         // route /from to the API for generating a document
         app.get('/form', function (req, res) {
+          res.header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
           createDocument(
             req.query.fromrole,
             req.query.levelfrom,
