@@ -16,9 +16,11 @@ Run `node index.js -h` for help on command line options syntax.
 
 ### As a web server
 
-You'll need to change into the `client` directory and:
+Run `node index.js -s 3000` where 3000 is the port you'd like to serve on.
+
+### Hacking
+
+To build the client, you'll need to change into the `client` directory and:
 
 Run `npm install`
 Run `webpack` (installing first [following instructions](webpack.github.io) if necessary)
-
-Run `node index.js -s 3000` where 3000 is the port you'd like to serve on.
