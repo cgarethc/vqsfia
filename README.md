@@ -18,6 +18,8 @@ Run `node index.js -h` for help on command line options syntax.
 
 Run `node index.js -s 3000` where 3000 is the port you'd like to serve on.
 
+Then, for example, browse to [http://localhost:3000](http://localhost:3000)
+
 ### Hacking
 
 To build the client, you'll need to change into the `client` directory and:
