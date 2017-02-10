@@ -15,3 +15,7 @@ node index.js -f "Support Engineer" -l "Intermediate" -d "docs"
 node index.js -f "User Experience Designer" -l "Graduate" -d "docs"
 node index.js -f "User Experience Designer" -l "Junior" -d "docs"
 node index.js -f "User Experience Designer" -l "Intermediate" -d "docs"
+
+node index.js -f "Services Director" -l "Manager" -d "docs"
+node index.js -f "Engineering Team Leader" -l "Senior" -d "docs"
+node index.js -f "Engineering Manager" -l "Manager" -d "docs"
